@@ -32,6 +32,8 @@ public class TSBHashTableDA<K,V> implements Map<K,V>, Cloneable, Serializable
     
     // la cantidad de objetos que contiene la tabla...
     private int count;
+
+    private int tombstoneCount;
     
     // el factor de carga para calcular si hace falta un rehashing...
     private float load_factor;
@@ -191,11 +193,8 @@ public class TSBHashTableDA<K,V> implements Map<K,V>, Cloneable, Serializable
 
         V value = null;
         Map.Entry<K, V> x = this.search_for_entry((K)key, ik);
-        if(x != null)
-        {
-            value = x.getValue();
-        }
-        return value;
+
+        return x!=null ? x.getValue() : value;
     }
 
     /**
@@ -249,10 +248,23 @@ public class TSBHashTableDA<K,V> implements Map<K,V>, Cloneable, Serializable
     @Override
     public V remove(Object key) 
     {
-        // HACER...
+        //HACER
         if(key == null) throw new NullPointerException("remove(): parámetro null");
 
-        return null;
+        int ik = this.h((K)key);
+
+        V old = null;
+        int pos = search_for_index((K)key, ik);
+
+        if(pos == -1) return null;
+
+        Entry<K,V> x = (Entry<K,V>) table[pos];
+        old = x.getValue();
+        x.setState(2);
+        count--;
+        tombstoneCount++;
+
+        return old;
     }
 
     /**
@@ -279,8 +291,14 @@ public class TSBHashTableDA<K,V> implements Map<K,V>, Cloneable, Serializable
     @Override
     public void clear() 
     {
-        // HACER... obvio...
-
+        //HACER
+            this.table = new Object[initial_capacity];
+            for(int i=0; i<table.length; i++)
+            {
+                this.table[i] = new Entry<K, V>(null, null);
+            }
+            this.count = 0;
+            this.modCount++;
     }
 
     /**
@@ -379,15 +397,28 @@ public class TSBHashTableDA<K,V> implements Map<K,V>, Cloneable, Serializable
      * @return una copia superficial de la tabla.
      * @throws java.lang.CloneNotSupportedException si la clase no implementa la
      *         interface Cloneable.    
-     */ 
+     */
+
+
     @Override
-    protected Object clone() throws CloneNotSupportedException 
+    protected Object clone() throws CloneNotSupportedException
     {
         // HACER...
-        TSBHashTableDA<K, V> t = (TSBHashTableDA<K, V>)super.clone();
+        TSBHashTableDA<K, V> t = (TSBHashTableDA<K, V>) super.clone();
 
+        t.table = new Object[table.length];
+        for(int i=0; i<table.length; i++)
+        {
+            t.table[i] = this.table[i];
+        }
+        t.keySet = null;
+        t.entrySet = null;
+        t.values = null;
+        t.modCount = 0;
         return t;
+
     }
+
 
     /**
      * Determina si esta tabla es igual al objeto especificado.
@@ -473,7 +504,13 @@ public class TSBHashTableDA<K,V> implements Map<K,V>, Cloneable, Serializable
     {
         // HACER...
         if(value == null) return false;
-        
+
+        for(int i = 0; i< table.length; i++){
+            Entry<K,V> x = (Entry<K,V>) table[i];
+            if(value.equals(x.getValue()) && x.getState() != 2){
+                return true;
+            }
+        }
         return false;
     }
     
@@ -596,7 +633,8 @@ public class TSBHashTableDA<K,V> implements Map<K,V>, Cloneable, Serializable
      */
     private float load_level()
     {
-        return (float) this.count / this.table.length;
+        int countT =  this.count + this.tombstoneCount;
+        return (float) countT / this.table.length;
     } 
     
     /*
@@ -624,7 +662,7 @@ public class TSBHashTableDA<K,V> implements Map<K,V>, Cloneable, Serializable
 
             Entry<K, V> entry = (Entry<K, V>) table[y];
             if(entry.getState() == OPEN) { return -1; }
-            if(key.equals(entry.getKey())) { return y; }
+            if(key.equals(entry.getKey()) && entry.getState() != TOMBSTONE) { return y; }
         }
     }
 
@@ -666,9 +704,10 @@ public class TSBHashTableDA<K,V> implements Map<K,V>, Cloneable, Serializable
 
         public Entry(K key, V value, int state)
         {
+            /*
             if (key == null || value == null){
                 throw new IllegalArgumentException("Entry(): parametro null...");
-            }
+            }*/
             this.key = key;
             this.value = value;
             this.state = state;
