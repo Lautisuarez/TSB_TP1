@@ -36,17 +36,22 @@ public class Test
         System.out.println(ht1.contains("Uruguay"));
         TSBHashTableDA<Integer, String> ht2 = (TSBHashTableDA<Integer, String>) ht1.clone();
         System.out.println("Clone: " + ht2);
-        /*
-        TSBHashTableDA<Integer, String> ht2 = new TSBHashTableDA<>(ht1);
-        System.out.println("Segunda tabla: " + ht2);
-        
+
+
+        TSBHashTableDA<Integer, String> ht3 = new TSBHashTableDA<>(ht1);
+        System.out.println("Segunda tabla: " + ht3);
+
         System.out.println("Tabla 1 recorrida a partir de una vista: ");
         Set<Map.Entry<Integer, String>> se = ht1.entrySet();
         Iterator<Map.Entry<Integer, String>> it = se.iterator();
+
+
+
         while(it.hasNext())
         {
             Map.Entry<Integer, String> entry = it.next();
             System.out.println("Par: " + entry);
-        }*/
+        }
     }
 }
+
